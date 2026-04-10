@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import './App.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const RECOMMEND_URL = `${API_BASE_URL}/api/recommend`
 
 const CUISINES = [
   { value: 'all', label: '全部' },
@@ -74,7 +75,7 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_URL}/recommend`, {
+      const res = await fetch(RECOMMEND_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,7 +90,7 @@ export default function App() {
       const data = await res.json()
       setResults(data.recommendations)
     } catch {
-      setError('無法連線到後端，請確認 backend 是否已啟動（port 8000）')
+      setError('無法連線到服務，請確認後端是否已啟動，或檢查部署設定。')
     } finally {
       setLoading(false)
     }

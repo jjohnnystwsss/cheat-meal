@@ -3,6 +3,11 @@ import os
 import random
 from itertools import combinations
 
+try:
+    from .ai_copy import generate_combo_copy
+except ImportError:
+    from ai_copy import generate_combo_copy
+
 _FOODS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "foods.json")
 
 with open(_FOODS_PATH, encoding="utf-8") as _f:
@@ -131,8 +136,9 @@ def recommend(target_calories, cuisine="all", exclude_tags=None, include_drink=T
     results = []
     for combo in _diverse(candidates, n):
         items = combo["items"]
+        ai = generate_combo_copy(items, combo["total_calories"], target_calories)
         results.append({
-            "name": _combo_name(items[0]),
+            "name": ai["name"] if ai else _combo_name(items[0]),
             "items": [
                 {
                     "id": i["id"],
@@ -146,7 +152,7 @@ def recommend(target_calories, cuisine="all", exclude_tags=None, include_drink=T
             ],
             "total_calories": combo["total_calories"],
             "total_price": combo["total_price"],
-            "reason": _combo_reason(items, combo["total_calories"], target_calories),
+            "reason": ai["reason"] if ai else _combo_reason(items, combo["total_calories"], target_calories),
         })
 
     return results

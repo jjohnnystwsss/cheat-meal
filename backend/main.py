@@ -1,8 +1,18 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List
-from recommender import recommend
+
+try:
+    from .recommender import recommend
+except ImportError:
+    from recommender import recommend
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIST_DIR = BASE_DIR / "frontend" / "dist"
 
 app = FastAPI(title="Cheat Meal Picker API")
 
@@ -27,7 +37,12 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/recommend")
+@app.get("/api/health")
+def api_health():
+    return {"status": "ok"}
+
+
+@app.post("/api/recommend")
 def get_recommendations(req: RecommendRequest):
     results = recommend(
         target_calories=req.target_calories,
@@ -37,3 +52,9 @@ def get_recommendations(req: RecommendRequest):
         include_dessert=req.include_dessert,
     )
     return {"recommendations": results, "target_calories": req.target_calories}
+
+
+app.add_api_route("/recommend", get_recommendations, methods=["POST"])
+
+if FRONTEND_DIST_DIR.exists():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST_DIR, html=True), name="frontend")

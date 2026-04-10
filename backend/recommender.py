@@ -5,13 +5,23 @@ from itertools import combinations
 
 try:
     from .ai_copy import generate_combo_copy
+    from .database import get_all_foods
 except ImportError:
     from ai_copy import generate_combo_copy
+    from database import get_all_foods
 
 _FOODS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "foods.json")
 
 with open(_FOODS_PATH, encoding="utf-8") as _f:
-    ALL_FOODS = json.load(_f)["foods"]
+    _JSON_FOODS = json.load(_f)["foods"]
+
+
+def _load_foods() -> list:
+    db_foods = get_all_foods()
+    return db_foods if db_foods else _JSON_FOODS
+
+
+ALL_FOODS = _JSON_FOODS  # kept for module-level compat
 
 _CUISINE_LABELS = {
     "fast_food": "速食",
@@ -94,7 +104,7 @@ def _diverse(candidates, n):
 
 def recommend(target_calories, cuisine="all", exclude_tags=None, include_drink=True, include_dessert=True, n=5):
     exclude_tags = exclude_tags or []
-    foods = _filter(ALL_FOODS, cuisine, exclude_tags)
+    foods = _filter(_load_foods(), cuisine, exclude_tags)
     roles = _by_role(foods)
 
     mains = roles["main"]

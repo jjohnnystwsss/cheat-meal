@@ -8,13 +8,23 @@ from typing import List
 
 try:
     from .recommender import recommend
+    from .database import init_db
 except ImportError:
     from recommender import recommend
+    from database import init_db
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIST_DIR = BASE_DIR / "frontend" / "dist"
 
 app = FastAPI(title="Cheat Meal Picker API")
+
+
+@app.on_event("startup")
+def on_startup():
+    try:
+        init_db()
+    except Exception as e:
+        print(f"[WARNING] DB init failed, falling back to JSON: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +45,22 @@ class RecommendRequest(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/db-status")
+def db_status():
+    import os
+    db_url = os.getenv("DATABASE_URL", "")
+    if not db_url or db_url.startswith("${"):
+        return {"db": "not configured", "DATABASE_URL": db_url, "source": "json"}
+    try:
+        from sqlalchemy import create_engine, text
+        e = create_engine(db_url)
+        with e.connect() as conn:
+            count = conn.execute(text("SELECT COUNT(*) FROM foods")).scalar()
+        return {"db": "connected", "foods_count": count, "source": "postgresql"}
+    except Exception as ex:
+        return {"db": "error", "detail": str(ex), "source": "json"}
 
 
 @app.get("/api/health")
